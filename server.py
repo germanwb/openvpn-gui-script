@@ -8,13 +8,11 @@ from flask import request
 from flask import jsonify
 from server_meat import InvalidUsage
 import os
+import config
 
 app = Flask(__name__)
-
-DEFINE_DEFAULT = {
-    'mail_to': '',
-
-}
+logging.basicConfig(format=u'%(filename)s[LINE:%(lineno)d]# %(levelname)-8s [%(asctime)s]  %(message)s',
+                    level=logging.DEBUG)
 
 
 def get_file_dir():
@@ -45,8 +43,8 @@ def start_ch():
     None
 
 
-def mailer(data, to=DEFINE_DEFAULT.get('mail_to'), username=DEFINE_DEFAULT.get('mail_login'),
-           password=DEFINE_DEFAULT.get('mail_passwd'), server=DEFINE_DEFAULT.get('mail_srv'), port=587):
+def mailer(data, to=config.mail_to, username=config.mail_login, password=config.mail_passwd,
+           server=config.mail_srv, port=587):
     import smtplib
     import socket
     hostname = socket.gethostname()
@@ -88,9 +86,8 @@ def route_auth():
             import json
             decode = request.data.decode("utf-8")
             print(decode)
-
-        except BaseException: logging.error("ERROR parse data in post /auth = {}".format(decode))
-        return jsonify(decode)
+            return jsonify(decode)
+        except BaseException: logging.error("ERROR parse data in post /auth = {}".format(request))
     else:
         return InvalidUsage('Auth error', status_code=403)
 
@@ -100,7 +97,6 @@ def handle_invalid_usage(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
-
 
 
 def run_app():
