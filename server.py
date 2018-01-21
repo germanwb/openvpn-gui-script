@@ -64,7 +64,8 @@ def mailer(data, to=config.mail_to, username=config.mail_login, password=config.
         s.login(username, password)
         s.sendmail(username, to, msg.as_string())
         s.quit()
-    except socket.gaierror:
+    #except socket.gaierror:
+    except ArithmeticError:
         logging.error('socket error in mailer ({}:{})'.format(server, port))
 
 
@@ -79,19 +80,6 @@ def run_schedule():
         time.sleep(1)
 
 
-@app.route('/auth', methods=['GET', 'POST'])
-def route_auth():
-    if request.method == 'POST':
-        try:
-            import json
-            decode = request.data.decode("utf-8")
-            print(decode)
-            return jsonify(decode)
-        except BaseException: logging.error("ERROR parse data in post /auth = {}".format(request))
-    else:
-        return InvalidUsage('Auth error', status_code=403)
-
-
 @app.errorhandler(InvalidUsage)
 def handle_invalid_usage(error):
     response = jsonify(error.to_dict())
@@ -99,12 +87,32 @@ def handle_invalid_usage(error):
     return response
 
 
+@app.route('/auth', methods=['GET', 'POST'])
+def route_auth():
+    if request.method == 'POST':
+        try:
+            import json
+            decode = request.data.decode("utf-8")
+            logging.debug('decoded: "{}"'.format(decode))
+            return jsonify(decode)
+        except BaseException: logging.error("ERROR parse data in post /auth = {}".format(request))
+    else:
+        raise InvalidUsage('Auth error', status_code=403)
+    raise InvalidUsage('Auth error', status_code=403)
+
+
+@app.route('/', methods=['GET'])
+def route_root():
+    mailer('OK')
+    return jsonify({'status': 'OK'}), 200
+
+
 def run_app():
     logging.info(u'START by __main__')
     schedule.every(60).seconds.do(schedule_runner)
     t = Thread(target=run_schedule)
     t.start()
-    app.run(debug=True, host='0.0.0.0', port=5001, use_reloader=False)
+    app.run(debug=True, host='127.0.0.1', port=5001, use_reloader=False)
 
 
 if __name__ == '__main__':
